@@ -2,7 +2,7 @@
  * OpeningHoursTab Component
  * Displays and manages store opening hours
  *
- * Refactored to match Figma design
+ * Refactored with multi-select day replication
  */
 
 import React, { useState, useCallback, useMemo } from "react";
@@ -14,28 +14,72 @@ import {
   theme,
   Switch,
   TimePicker,
-  Space,
-  Dropdown,
-  MenuProps,
+  Popover,
+  Checkbox,
 } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
   CopyOutlined,
-  SwapOutlined,
-  DownOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import type { OpeningHoursDay, TimePeriod } from "../../types/gotime.types";
 import { DEFAULT_OPENING_HOURS } from "../../constants/gotime.constants";
-import { ReplicationModal } from "./ReplicationModal";
 
 const { Text } = Typography;
 
 interface OpeningHoursTabProps {
   storeId: string;
 }
+
+// Replication Popover Content Component
+const ReplicationPopover: React.FC<{
+  sourceDay: string;
+  allDays: OpeningHoursDay[];
+  onReplicate: (targetDays: string[]) => void;
+  onClose: () => void;
+}> = ({ sourceDay, allDays, onReplicate, onClose }) => {
+  const { token } = theme.useToken();
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+
+  const otherDays = allDays.filter((d) => d.day !== sourceDay);
+
+  const handleConfirm = () => {
+    if (selectedDays.length > 0) {
+      onReplicate(selectedDays);
+      setSelectedDays([]);
+      onClose();
+    }
+  };
+
+  return (
+    <Flex vertical gap={12} style={{ width: 180 }}>
+      <Text strong style={{ fontSize: 13 }}>Replicar para:</Text>
+      <Checkbox.Group
+        value={selectedDays}
+        onChange={(values) => setSelectedDays(values as string[])}
+      >
+        <Flex vertical gap={6}>
+          {otherDays.map((day) => (
+            <Checkbox key={day.day} value={day.day}>
+              <Text style={{ fontSize: 13 }}>{day.day}</Text>
+            </Checkbox>
+          ))}
+        </Flex>
+      </Checkbox.Group>
+      <Button
+        type="primary"
+        size="small"
+        onClick={handleConfirm}
+        disabled={selectedDays.length === 0}
+        block
+      >
+        Replicar ({selectedDays.length})
+      </Button>
+    </Flex>
+  );
+};
 
 const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
   storeId,
@@ -44,10 +88,7 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
   const [openingHours, setOpeningHours] = useState<OpeningHoursDay[]>(
     DEFAULT_OPENING_HOURS
   );
-  const [replicationModalOpen, setReplicationModalOpen] = useState(false);
-  const [replicationSourceDay, setReplicationSourceDay] = useState<string | null>(
-    null
-  );
+  const [openPopover, setOpenPopover] = useState<string | null>(null);
 
   const handleToggleDay = useCallback((day: string, isOpen: boolean) => {
     setOpeningHours((prev) =>
@@ -96,26 +137,10 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
     );
   }, []);
 
-  const handleReplicateAll = useCallback(
-    (sourceDay: string) => {
+  const handleReplicateToSelected = useCallback(
+    (sourceDay: string, targetDays: string[]) => {
       setOpeningHours((prev) => {
         const source = prev.find((d) => d.day === sourceDay);
-        if (!source) return prev;
-        return prev.map((d) =>
-          d.day === sourceDay
-            ? d
-            : { ...d, isOpen: source.isOpen, periods: [...source.periods] }
-        );
-      });
-    },
-    []
-  );
-
-  const handleReplicateToSelected = useCallback(
-    (targetDays: string[]) => {
-      if (!replicationSourceDay) return;
-      setOpeningHours((prev) => {
-        const source = prev.find((d) => d.day === replicationSourceDay);
         if (!source) return prev;
         return prev.map((d) =>
           targetDays.includes(d.day)
@@ -124,26 +149,8 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
         );
       });
     },
-    [replicationSourceDay]
+    []
   );
-
-  const getDropdownItems = (day: string): MenuProps["items"] => [
-    {
-      key: "all",
-      label: "Replicar em todos",
-      icon: <CopyOutlined />,
-      onClick: () => handleReplicateAll(day),
-    },
-    {
-      key: "select",
-      label: "Selecionar dias",
-      icon: <SwapOutlined />,
-      onClick: () => {
-        setReplicationSourceDay(day);
-        setReplicationModalOpen(true);
-      },
-    },
-  ];
 
   const columns: ColumnsType<OpeningHoursDay> = useMemo(
     () => [
@@ -180,7 +187,7 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
           }
 
           return (
-            <Flex gap={16} wrap="wrap">
+            <Flex align="center" gap={12} wrap="wrap">
               {periods.map((period, index) => (
                 <Flex
                   key={index}
@@ -188,13 +195,13 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
                   gap={8}
                   style={{
                     background: token.colorBgLayout,
-                    padding: "4px 8px",
+                    padding: "4px 12px",
                     borderRadius: token.borderRadius,
                   }}
                 >
                   <Text
                     type="secondary"
-                    style={{ fontSize: 12, minWidth: 60 }}
+                    style={{ fontSize: 12, whiteSpace: "nowrap" }}
                   >
                     {index + 1}º Período
                   </Text>
@@ -234,6 +241,7 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
                       type="text"
                       className="btn-delete"
                       size="small"
+                      danger
                       icon={<DeleteOutlined style={{ fontSize: 12 }} />}
                       onClick={() => handleRemovePeriod(record.day, index)}
                       style={{ padding: "0 4px" }}
@@ -242,11 +250,11 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
                 </Flex>
               ))}
               <Button
-                type="text"
+                type="dashed"
                 size="small"
                 icon={<PlusOutlined />}
                 onClick={() => handleAddPeriod(record.day)}
-                style={{ color: token.colorPrimary }}
+                className="btn-add-period"
               >
                 Período
               </Button>
@@ -256,19 +264,34 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
       },
       {
         title: "Ações",
-        width: 100,
+        width: 120,
         align: "center" as const,
         render: (_, record) => (
-          <Dropdown
-            menu={{ items: getDropdownItems(record.day) }}
-            trigger={["click"]}
+          <Popover
+            open={openPopover === record.day}
+            onOpenChange={(visible) => setOpenPopover(visible ? record.day : null)}
+            trigger="click"
+            placement="bottomRight"
+            content={
+              <ReplicationPopover
+                sourceDay={record.day}
+                allDays={openingHours}
+                onReplicate={(targetDays) =>
+                  handleReplicateToSelected(record.day, targetDays)
+                }
+                onClose={() => setOpenPopover(null)}
+              />
+            }
           >
             <Button
               type="text"
               size="small"
-              icon={<SwapOutlined style={{ transform: "rotate(90deg)" }} />}
-            />
-          </Dropdown>
+              icon={<CopyOutlined />}
+              className="btn-replicate"
+            >
+              Replicar
+            </Button>
+          </Popover>
         ),
       },
     ],
@@ -278,7 +301,9 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
       handleTimeChange,
       handleAddPeriod,
       handleRemovePeriod,
-      handleReplicateAll,
+      handleReplicateToSelected,
+      openingHours,
+      openPopover,
     ]
   );
 
@@ -286,6 +311,29 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
 
   return (
     <>
+      <style>
+        {`
+          .btn-add-period {
+            color: ${token.colorTextSecondary} !important;
+            border-color: ${token.colorBorder} !important;
+            border-style: dashed !important;
+            transition: all 0.2s;
+          }
+          .btn-add-period:hover {
+            color: ${token.colorPrimary} !important;
+            border-color: ${token.colorPrimary} !important;
+            background: ${token.colorPrimaryBg} !important;
+          }
+          .btn-replicate {
+            color: ${token.colorTextSecondary} !important;
+            transition: all 0.2s;
+          }
+          .btn-replicate:hover {
+            color: ${token.colorPrimary} !important;
+            background: ${token.colorPrimaryBg} !important;
+          }
+        `}
+      </style>
       <Flex
         vertical
         style={{
@@ -328,14 +376,6 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
           </Text>
         </Flex>
       </Flex>
-
-      <ReplicationModal
-        open={replicationModalOpen}
-        sourceDay={replicationSourceDay}
-        days={openingHours}
-        onClose={() => setReplicationModalOpen(false)}
-        onConfirm={handleReplicateToSelected}
-      />
     </>
   );
 };
