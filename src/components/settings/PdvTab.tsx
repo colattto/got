@@ -156,6 +156,8 @@ const PdvTabComponent: React.FC<PdvTabProps> = ({ pdvs, searchTerm, onUpdate, on
             flex: 1,
             minHeight: 0,
             overflow: "hidden",
+            border: `1px solid ${token.colorBorderSecondary}`,
+            borderRadius: token.borderRadiusLG,
           }}
         >
           <Table
@@ -163,7 +165,6 @@ const PdvTabComponent: React.FC<PdvTabProps> = ({ pdvs, searchTerm, onUpdate, on
             dataSource={filteredPdvs}
             rowKey="id"
             pagination={false}
-            bordered={false}
             size="middle"
             scroll={{ y: tableScrollHeight }}
           />
@@ -174,7 +175,6 @@ const PdvTabComponent: React.FC<PdvTabProps> = ({ pdvs, searchTerm, onUpdate, on
           justify="space-between"
           style={{
             padding: `${token.paddingMD}px 0`,
-            borderTop: `1px solid ${token.colorSplit}`,
             background: token.colorBgContainer,
             flexShrink: 0,
           }}

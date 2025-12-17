@@ -136,6 +136,8 @@ const CollaboratorsTabComponent: React.FC<CollaboratorsTabProps> = ({
           flex: 1,
           minHeight: 0,
           overflow: "hidden",
+          border: `1px solid ${token.colorBorderSecondary}`,
+          borderRadius: token.borderRadiusLG,
         }}
       >
         <Table
@@ -143,7 +145,6 @@ const CollaboratorsTabComponent: React.FC<CollaboratorsTabProps> = ({
           dataSource={filteredCollaborators}
           rowKey="id"
           pagination={false}
-          bordered={false}
           size="middle"
           scroll={{ y: tableScrollHeight }}
         />
@@ -154,7 +155,6 @@ const CollaboratorsTabComponent: React.FC<CollaboratorsTabProps> = ({
         justify="space-between"
         style={{
           padding: `${token.paddingMD}px 0`,
-          borderTop: `1px solid ${token.colorSplit}`,
           background: token.colorBgContainer,
           flexShrink: 0,
         }}

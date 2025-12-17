@@ -28,10 +28,10 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
-import type { Holiday, HolidayType } from "../types/gotime.types";
-import { useHolidays } from "../hooks/useHolidays";
-import { getWeekdayName } from "../utils/formatters";
-import { HolidayFormDrawer } from "./settings/HolidayFormDrawer";
+import type { Holiday, HolidayType } from "../../types/gotime.types";
+import { useHolidays } from "../../hooks/useHolidays";
+import { getWeekdayName } from "../../utils/formatters";
+import { HolidayFormDrawer } from "./HolidayFormDrawer";
 
 const { Text } = Typography;
 
@@ -173,6 +173,8 @@ const HolidaysTabComponent: React.FC<HolidaysTabProps> = ({ storeId }) => {
           flex: 1,
           minHeight: 0,
           overflow: "hidden",
+          border: `1px solid ${token.colorBorderSecondary}`,
+          borderRadius: token.borderRadiusLG,
         }}
       >
         <Table
@@ -180,7 +182,6 @@ const HolidaysTabComponent: React.FC<HolidaysTabProps> = ({ storeId }) => {
           dataSource={holidays}
           rowKey="id"
           pagination={false}
-          bordered={false}
           size="middle"
           scroll={{ y: tableScrollHeight }}
         />
@@ -191,7 +192,6 @@ const HolidaysTabComponent: React.FC<HolidaysTabProps> = ({ storeId }) => {
         justify="space-between"
         style={{
           padding: `${token.paddingMD}px 0`,
-          borderTop: `1px solid ${token.colorSplit}`,
           background: token.colorBgContainer,
           flexShrink: 0,
         }}

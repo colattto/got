@@ -21,7 +21,7 @@ import { PageLayout } from "../components/shared/PageLayout";
 import { CollaboratorsTab } from "../components/settings/CollaboratorsTab";
 import { PdvTab } from "../components/settings/PdvTab";
 import { OpeningHoursTab } from "../components/settings/OpeningHoursTab";
-import { HolidaysTab } from "../components/HolidaysTab";
+import { HolidaysTab } from "../components/settings/HolidaysTab";
 import { SalesForecastTab } from "../components/SalesForecastTab";
 import { ParametersTab } from "../components/ParametersTab";
 
@@ -150,9 +150,9 @@ export const GotimeSettingsPage: React.FC = () => {
           </Flex>
 
           {/* Tab Content */}
-          <div style={{ flex: 1, overflow: "hidden" }}>
+          <Flex style={{ flex: 1, overflow: "hidden" }}>
             {renderTabContent()}
-          </div>
+          </Flex>
         </Flex>
       </PageLayout>
     </Layout>

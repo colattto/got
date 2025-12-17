@@ -1,0 +1,46 @@
+# Gotime Settings Module - Project Intelligence
+
+## Project Patterns
+
+### File Naming
+- Components: PascalCase (`HolidaysTab.tsx`)
+- Hooks: camelCase with `use` prefix (`useHolidays.ts`)
+- Services: camelCase with `Service` suffix (`holidaysService.ts`)
+- Types: grouped in `gotime.types.ts`
+
+### Ant Design Usage
+- Always use `theme.useToken()` for styling values
+- Use `App.useApp()` for feedback (message, modal, notification)
+- Prefer `Flex` over native div for layouts
+- Use `Typography.Text`/`Paragraph` instead of span/p
+
+### Service Pattern
+```typescript
+export const EntityService = {
+  list: async (params): Promise<Entity[]> => {...},
+  create: async (data): Promise<Entity> => {...},
+  update: async (id, data): Promise<Entity> => {...},
+  delete: async (id): Promise<void> => {...}
+};
+```
+
+### Hook Pattern
+- Always return `{ data, loading, error, handlers }`
+- Use services for all data operations
+- Provide callbacks for CRUD actions
+
+## User Preferences
+- Portuguese (Brazil) for UI labels
+- Brazilian terminology: "Colaboradores", "Feriados", "PDV", "Previsão de Vendas"
+- Date format: DD/MM/YYYY
+- Time format: HH:mm (24-hour)
+
+## Known Challenges
+1. TimePicker requires dayjs integration
+2. Form validation needs consistent error messages
+3. Cross-store replication has complex state management
+
+## Evolution Notes
+- Started with monolithic components
+- Migrated to 3-layer architecture (Dec 2024)
+- Service layer using mock data (real API pending)

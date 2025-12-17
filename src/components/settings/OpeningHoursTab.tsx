@@ -299,6 +299,8 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
             flex: 1,
             minHeight: 0,
             overflow: "hidden",
+            border: `1px solid ${token.colorBorderSecondary}`,
+            borderRadius: token.borderRadiusLG,
           }}
         >
           <Table
@@ -306,7 +308,6 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
             dataSource={openingHours}
             rowKey="day"
             pagination={false}
-            bordered={false}
             size="middle"
             scroll={{ y: tableScrollHeight }}
           />
@@ -317,7 +318,6 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
           justify="space-between"
           style={{
             padding: `${token.paddingMD}px 0`,
-            borderTop: `1px solid ${token.colorSplit}`,
             background: token.colorBgContainer,
             flexShrink: 0,
           }}

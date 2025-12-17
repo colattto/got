@@ -1,52 +1,86 @@
 /**
  * useGotimeSettings Hook
  * Main orchestrator hook for Gotime Settings page state management
+ *
+ * Refactored: Fixed stale closures with functional updates
  */
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { App } from "antd";
 import type { TabType, Store, Collaborator, Pdv } from "../types/gotime.types";
-import {
-  STORES_MOCK,
-  COLLABORATORS_BY_STORE,
-  PDVS_BY_STORE,
-} from "../constants/gotime.constants";
+import { StoreService } from "../services/storeService";
+import { useAsync } from "./useAsync";
+import { getErrorMessage } from "../lib";
 
 export const useGotimeSettings = () => {
-  // State
-  const [selectedStoreId, setSelectedStoreId] = useState<string>(
-    STORES_MOCK[0]?.id || ""
-  );
+  const { message } = App.useApp();
+
+  // UI State
+  const [selectedStoreId, setSelectedStoreId] = useState<string>("");
   const [activeTab, setActiveTab] = useState<TabType>("collaborators");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [storeSearchTerm, setStoreSearchTerm] = useState("");
 
-  // Derived state
-  const stores = STORES_MOCK;
+  // Data State
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [pdvs, setPdvs] = useState<Pdv[]>([]);
+  const [dataLoading, setDataLoading] = useState(false);
 
+  // Load stores using useAsync
+  const { data: stores, loading: storesLoading } = useAsync(
+    () => StoreService.getStores(),
+    [],
+    {
+      onSuccess: () => {},
+      onError: (error) => {
+        message.error(`Erro ao carregar lojas: ${getErrorMessage(error)}`);
+      },
+    }
+  );
+
+  // Set initial store when stores load
+  useEffect(() => {
+    if (stores && stores.length > 0 && !selectedStoreId) {
+      setSelectedStoreId(stores[0].id);
+    }
+  }, [stores, selectedStoreId]);
+
+  // Load store data when selectedStoreId changes
+  useEffect(() => {
+    if (!selectedStoreId) return;
+
+    const loadStoreData = async () => {
+      setDataLoading(true);
+      try {
+        const [collabs, pdvList] = await Promise.all([
+          StoreService.getCollaborators(selectedStoreId),
+          StoreService.getPdvs(selectedStoreId),
+        ]);
+        setCollaborators(collabs);
+        setPdvs(pdvList);
+      } catch (error) {
+        message.error(`Erro ao carregar dados da loja: ${getErrorMessage(error)}`);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    loadStoreData();
+  }, [selectedStoreId, message]);
+
+  // Derived state
   const filteredStores = useMemo(() => {
-    if (!storeSearchTerm) return stores;
+    if (!stores || !storeSearchTerm) return stores ?? [];
     return stores.filter((store) =>
       store.name.toLowerCase().includes(storeSearchTerm.toLowerCase())
     );
   }, [stores, storeSearchTerm]);
 
   const selectedStore = useMemo(
-    () => stores.find((s) => s.id === selectedStoreId),
+    () => stores?.find((s) => s.id === selectedStoreId),
     [stores, selectedStoreId]
   );
-
-  // State for data (initialized from mocks for now, but mutable)
-  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
-  const [pdvs, setPdvs] = useState<Pdv[]>([]);
-
-  // Effect to load data when store changes (simulating fetch)
-  // In a real app, this would be a useEffect calling an API
-  // Here we just reset to the mock data for that store
-  useMemo(() => {
-    setCollaborators(COLLABORATORS_BY_STORE[selectedStoreId] || []);
-    setPdvs(PDVS_BY_STORE[selectedStoreId] || []);
-  }, [selectedStoreId]);
 
   // Handlers
   const handleStoreSelect = useCallback((storeId: string) => {
@@ -61,23 +95,64 @@ export const useGotimeSettings = () => {
     setSidebarCollapsed((prev) => !prev);
   }, []);
 
-  const handleUpdateCollaborator = useCallback((id: string, updates: Partial<Collaborator>) => {
-    setCollaborators((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
-    );
-  }, []);
+  // Fixed: Using functional update to avoid stale closure
+  const handleUpdateCollaborator = useCallback(
+    async (id: string, updates: Partial<Collaborator>) => {
+      // Store previous state for rollback
+      let previousCollaborators: Collaborator[] = [];
 
-  const handleUpdatePdv = useCallback((id: string, updates: Partial<Pdv>) => {
-    setPdvs((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
-    );
-  }, []);
+      // Optimistic update with functional state
+      setCollaborators((prev) => {
+        previousCollaborators = prev;
+        return prev.map((c) => (c.id === id ? { ...c, ...updates } : c));
+      });
 
-  const handleAddPdv = useCallback((newPdv: Omit<Pdv, "id">) => {
-    // Generate a temporary ID (in real app backend handles this)
-    const id = Math.random().toString(36).substr(2, 9);
-    setPdvs((prev) => [...prev, { ...newPdv, id }]);
-  }, []);
+      try {
+        await StoreService.updateCollaborator(id, updates);
+      } catch (error) {
+        // Rollback on error
+        setCollaborators(previousCollaborators);
+        message.error(`Erro ao atualizar colaborador: ${getErrorMessage(error)}`);
+      }
+    },
+    [message]
+  );
+
+  // Fixed: Using functional update to avoid stale closure
+  const handleUpdatePdv = useCallback(
+    async (id: string, updates: Partial<Pdv>) => {
+      let previousPdvs: Pdv[] = [];
+
+      // Optimistic update with functional state
+      setPdvs((prev) => {
+        previousPdvs = prev;
+        return prev.map((p) => (p.id === id ? { ...p, ...updates } : p));
+      });
+
+      try {
+        await StoreService.updatePdv(selectedStoreId, id, updates);
+      } catch (error) {
+        // Rollback on error
+        setPdvs(previousPdvs);
+        message.error(`Erro ao atualizar PDV: ${getErrorMessage(error)}`);
+      }
+    },
+    [selectedStoreId, message]
+  );
+
+  const handleAddPdv = useCallback(
+    async (newPdv: Omit<Pdv, "id">) => {
+      try {
+        const addedPdv = await StoreService.createPdv(selectedStoreId, newPdv);
+        // Functional update
+        setPdvs((prev) => [...prev, addedPdv]);
+        message.success("PDV adicionado com sucesso!");
+      } catch (error) {
+        message.error(`Erro ao adicionar PDV: ${getErrorMessage(error)}`);
+      }
+    },
+    [selectedStoreId, message]
+  );
 
   return {
     // State
@@ -86,18 +161,19 @@ export const useGotimeSettings = () => {
     sidebarCollapsed,
     searchTerm,
     storeSearchTerm,
-    
+    loading: storesLoading || dataLoading,
+
     // Derived
-    stores,
+    stores: stores ?? [],
     filteredStores,
     selectedStore,
     collaborators,
     pdvs,
-    
+
     // Setters
     setSearchTerm,
     setStoreSearchTerm,
-    
+
     // Handlers
     handleStoreSelect,
     handleTabChange,

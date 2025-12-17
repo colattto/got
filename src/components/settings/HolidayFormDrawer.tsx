@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Drawer,
   Form,
@@ -29,9 +29,17 @@ export const HolidayFormDrawer: React.FC<HolidayFormDrawerProps> = ({
 }) => {
   const { token } = theme.useToken();
   const [form] = Form.useForm();
+  const [drawerSize, setDrawerSize] = useState(480);
   
   // Watch for the 'closed' checkbox to disable time pickers
   const closed = Form.useWatch("closed", form);
+
+  // Reset size when drawer opens
+  useEffect(() => {
+    if (open) {
+      setDrawerSize(480);
+    }
+  }, [open]);
 
   const handleFinish = (values: any) => {
     onSave(values);
@@ -43,9 +51,12 @@ export const HolidayFormDrawer: React.FC<HolidayFormDrawerProps> = ({
     <Drawer
       title="Novo feriado ou dia especial"
       placement="right"
-      width={480}
       onClose={onClose}
       open={open}
+      size={drawerSize}
+      resizable={{
+        onResize: (newSize) => setDrawerSize(newSize),
+      }}
       styles={{
         body: { paddingBottom: 80 },
       }}

@@ -62,6 +62,15 @@ export interface Holiday {
   recurring: boolean;
 }
 
+export interface CreateHolidayDTO {
+  date: string;
+  name: string;
+  type: HolidayType;
+  storeId: string;
+}
+
+export type UpdateHolidayDTO = Partial<Omit<Holiday, "id" | "storeId">>;
+
 // ============ Sales Forecast Types ============
 
 export interface SalesForecast {

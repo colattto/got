@@ -112,6 +112,8 @@ const SalesForecastTabComponent: React.FC<SalesForecastTabProps> = ({
           flex: 1,
           minHeight: 0,
           overflow: "hidden",
+          border: `1px solid ${token.colorBorderSecondary}`,
+          borderRadius: token.borderRadiusLG,
         }}
       >
         <Table
@@ -119,7 +121,6 @@ const SalesForecastTabComponent: React.FC<SalesForecastTabProps> = ({
           dataSource={forecasts}
           rowKey="id"
           pagination={false}
-          bordered={false}
           size="middle"
           scroll={{ y: tableScrollHeight }}
         />
@@ -130,7 +131,6 @@ const SalesForecastTabComponent: React.FC<SalesForecastTabProps> = ({
         justify="space-between"
         style={{
           padding: `${token.paddingMD}px 0`,
-          borderTop: `1px solid ${token.colorSplit}`,
           background: token.colorBgContainer,
           flexShrink: 0,
         }}

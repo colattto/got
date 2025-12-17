@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Drawer,
   Form,
@@ -33,9 +33,11 @@ export const PdvFormDrawer: React.FC<PdvFormDrawerProps> = ({
 }) => {
   const { token } = theme.useToken();
   const [form] = Form.useForm();
+  const [drawerSize, setDrawerSize] = useState(480);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (open) {
+      setDrawerSize(480);
       if (initialValues) {
         form.setFieldsValue(initialValues);
       } else {
@@ -67,9 +69,12 @@ export const PdvFormDrawer: React.FC<PdvFormDrawerProps> = ({
     <Drawer
       title="Novo PDV"
       placement="right"
-      width={480}
       onClose={onClose}
       open={open}
+      size={drawerSize}
+      resizable={{
+        onResize: (newSize) => setDrawerSize(newSize),
+      }}
       styles={{
         body: { paddingBottom: 80 },
       }}

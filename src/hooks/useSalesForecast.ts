@@ -1,43 +1,15 @@
 /**
  * useSalesForecast Hook
  * Manages sales forecast data and month navigation
+ *
+ * Refactored: Uses SalesForecastService and cleaner state management
  */
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { App } from "antd";
 import type { SalesForecast } from "../types/gotime.types";
-import { WEEKDAY_NAMES } from "../constants/gotime.constants";
-
-// Generate mock data for a given month
-const generateMockData = (year: number, month: number): SalesForecast[] => {
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  const baseValues = [
-    150000, 250000, 350000, 300000, 200000, 400000, 350000, 300000, 250000,
-    150000, 200000, 300000, 350000, 400000, 250000, 180000, 220000, 280000,
-    320000, 380000, 420000, 360000, 290000, 240000, 190000, 270000, 310000,
-    370000, 410000, 330000, 260000,
-  ];
-
-  const data: SalesForecast[] = [];
-
-  for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(year, month, day);
-    const dayOfWeek = WEEKDAY_NAMES[date.getDay()];
-    const formattedDate = `${String(day).padStart(2, "0")}/${String(
-      month + 1
-    ).padStart(2, "0")}/${year}`;
-
-    data.push({
-      id: String(day),
-      date: formattedDate,
-      dayOfWeek,
-      value: baseValues[(day - 1) % baseValues.length],
-    });
-  }
-
-  return data;
-};
+import { SalesForecastService } from "../services/salesForecastService";
+import { getErrorMessage } from "../lib";
 
 interface UseSalesForecastOptions {
   storeId: string;
@@ -46,67 +18,90 @@ interface UseSalesForecastOptions {
 export const useSalesForecast = ({ storeId }: UseSalesForecastOptions) => {
   const { message } = App.useApp();
 
-  const [currentMonth, setCurrentMonth] = useState(11);
-  const [currentYear, setCurrentYear] = useState(2025);
-  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
-  const [forecasts, setForecasts] = useState<SalesForecast[]>(() =>
-    generateMockData(2025, 11)
-  );
+  // Date state
+  const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
 
+  // View state
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+
+  // Data state
+  const [forecasts, setForecasts] = useState<SalesForecast[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load forecasts when month/year/store changes
+  useEffect(() => {
+    const loadForecasts = async () => {
+      setLoading(true);
+      try {
+        const data = await SalesForecastService.list(storeId, currentYear, currentMonth);
+        setForecasts(data);
+      } catch (error) {
+        message.error(`Erro ao carregar previsões: ${getErrorMessage(error)}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadForecasts();
+  }, [storeId, currentYear, currentMonth, message]);
+
+  // Computed total
   const totalValue = useMemo(
     () => forecasts.reduce((sum, f) => sum + f.value, 0),
     [forecasts]
   );
 
+  // Navigation handlers
   const handlePreviousMonth = useCallback(() => {
-    let newMonth = currentMonth;
-    let newYear = currentYear;
-
-    if (currentMonth === 0) {
-      newMonth = 11;
-      newYear = currentYear - 1;
-    } else {
-      newMonth = currentMonth - 1;
-    }
-
-    setCurrentMonth(newMonth);
-    setCurrentYear(newYear);
-    setForecasts(generateMockData(newYear, newMonth));
-  }, [currentMonth, currentYear]);
+    setCurrentMonth((prevMonth) => {
+      if (prevMonth === 0) {
+        setCurrentYear((prevYear) => prevYear - 1);
+        return 11;
+      }
+      return prevMonth - 1;
+    });
+  }, []);
 
   const handleNextMonth = useCallback(() => {
-    let newMonth = currentMonth;
-    let newYear = currentYear;
+    setCurrentMonth((prevMonth) => {
+      if (prevMonth === 11) {
+        setCurrentYear((prevYear) => prevYear + 1);
+        return 0;
+      }
+      return prevMonth + 1;
+    });
+  }, []);
 
-    if (currentMonth === 11) {
-      newMonth = 0;
-      newYear = currentYear + 1;
-    } else {
-      newMonth = currentMonth + 1;
-    }
-
-    setCurrentMonth(newMonth);
-    setCurrentYear(newYear);
-    setForecasts(generateMockData(newYear, newMonth));
-  }, [currentMonth, currentYear]);
-
+  // Update single forecast value
   const handleValueChange = useCallback(
     async (id: string, newValue: number | null) => {
       if (newValue === null) return;
 
+      // Store previous state for rollback
+      const previousForecasts = forecasts;
+
+      // Optimistic update
+      setForecasts((prev) =>
+        prev.map((f) => (f.id === id ? { ...f, value: newValue } : f))
+      );
+
       try {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-
-        setForecasts((prev) =>
-          prev.map((f) => (f.id === id ? { ...f, value: newValue } : f))
+        await SalesForecastService.update(
+          storeId,
+          currentYear,
+          currentMonth,
+          id,
+          newValue
         );
-
         message.success("Valor atualizado com sucesso!");
       } catch (error) {
-        message.error("Erro ao atualizar valor");
+        // Rollback on error
+        setForecasts(previousForecasts);
+        message.error(`Erro ao atualizar valor: ${getErrorMessage(error)}`);
       }
     },
-    [message]
+    [storeId, currentYear, currentMonth, forecasts, message]
   );
 
   return {
@@ -115,6 +110,7 @@ export const useSalesForecast = ({ storeId }: UseSalesForecastOptions) => {
     viewMode,
     forecasts,
     totalValue,
+    loading,
     setViewMode,
     handlePreviousMonth,
     handleNextMonth,
