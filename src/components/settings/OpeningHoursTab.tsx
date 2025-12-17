@@ -165,6 +165,7 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
         dataIndex: "isOpen",
         width: 80,
         align: "center" as const,
+        onCell: () => ({ style: { opacity: 1 } }),
         render: (value: boolean, record) => (
           <Switch
             size="small"
@@ -358,6 +359,11 @@ const OpeningHoursTabComponent: React.FC<OpeningHoursTabProps> = ({
             pagination={false}
             size="middle"
             scroll={{ y: tableScrollHeight }}
+            onRow={(record) => ({
+              style: !record.isOpen
+                ? { opacity: 0.5, transition: 'opacity 0.2s ease' }
+                : { opacity: 1, transition: 'opacity 0.2s ease' },
+            })}
           />
         </Flex>
 

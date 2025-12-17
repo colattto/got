@@ -104,6 +104,7 @@ const CollaboratorsTabComponent: React.FC<CollaboratorsTabProps> = ({
         dataIndex: "scaleActive",
         align: "center" as const,
         width: 72,
+        onCell: () => ({ style: { opacity: 1 } }),
         render: (value: boolean, record: Collaborator) => (
           <Switch
             size="small"
@@ -147,6 +148,11 @@ const CollaboratorsTabComponent: React.FC<CollaboratorsTabProps> = ({
           pagination={false}
           size="middle"
           scroll={{ y: tableScrollHeight }}
+          onRow={(record) => ({
+            style: !record.scaleActive
+              ? { opacity: 0.5, transition: 'opacity 0.2s ease' }
+              : { opacity: 1, transition: 'opacity 0.2s ease' },
+          })}
         />
       </Flex>
 

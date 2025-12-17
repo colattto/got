@@ -97,6 +97,7 @@ const PdvTabComponent: React.FC<PdvTabProps> = ({ pdvs, searchTerm, onUpdate, on
         dataIndex: "scaleActive",
         align: "center" as const,
         width: 72,
+        onCell: () => ({ style: { opacity: 1 } }),
         render: (value: boolean, record: Pdv) => (
           <Switch
             size="small"
@@ -167,6 +168,11 @@ const PdvTabComponent: React.FC<PdvTabProps> = ({ pdvs, searchTerm, onUpdate, on
             pagination={false}
             size="middle"
             scroll={{ y: tableScrollHeight }}
+            onRow={(record) => ({
+              style: !record.scaleActive
+                ? { opacity: 0.5, transition: 'opacity 0.2s ease' }
+                : { opacity: 1, transition: 'opacity 0.2s ease' },
+            })}
           />
         </Flex>
 

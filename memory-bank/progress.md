@@ -30,6 +30,15 @@
 - Drawers and modals for CRUD operations
 - Fixed architecture violations (no native HTML)
 
+### Shared Components (NEW)
+
+- `GotimeLogo` - Reusable logo SVG with size/animation props
+- `ContentBlock` - Standard content container
+- `TabNavigation` - Tab navigation component
+- `AppLayout` - Base layout (MainSidebar + PageLayout)
+- `PageHeader`, `PageLayout`, `CollapsibleSidebar`, `StoresSidebar`
+- `index.ts` - Barrel export for all shared components
+
 ## What's Left to Build 🚧
 
 ### High Priority

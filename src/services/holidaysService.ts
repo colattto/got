@@ -51,10 +51,9 @@ export const HolidaysService = {
 
   /**
    * Update an existing holiday
+   * No delay for instant UI feedback
    */
   update: async (id: string, data: UpdateHolidayDTO): Promise<Holiday> => {
-    await delay();
-
     const updated = holidayStore.update(id, data);
     if (!updated) {
       throw new NotFoundError("Holiday", id);

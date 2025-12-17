@@ -114,6 +114,7 @@ const HolidaysTabComponent: React.FC<HolidaysTabProps> = ({ storeId }) => {
         dataIndex: "recurring",
         align: "center" as const,
         width: 120,
+        onCell: () => ({ style: { opacity: 1 } }),
         render: (value: boolean, record) => (
           <Switch
             size="small"
@@ -184,6 +185,12 @@ const HolidaysTabComponent: React.FC<HolidaysTabProps> = ({ storeId }) => {
           pagination={false}
           size="middle"
           scroll={{ y: tableScrollHeight }}
+          rowClassName={(record) => (!record.recurring ? 'row-disabled' : '')}
+          onRow={(record) => ({
+            style: !record.recurring
+              ? { opacity: 0.5, transition: 'opacity 0.2s ease' }
+              : { opacity: 1, transition: 'opacity 0.2s ease' },
+          })}
         />
       </Flex>
 

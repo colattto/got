@@ -185,7 +185,7 @@ const ParametersTabComponent: React.FC<ParametersTabProps> = ({ storeId }) => {
           </Checkbox>
         </Flex>
 
-        <Divider style={{ margin: '16px 0' }} />
+        <Divider style={{ margin: '8px 0' }} />
 
         {/* Almoço Section */}
         <SectionTitle>Almoço</SectionTitle>
@@ -248,7 +248,7 @@ const ParametersTabComponent: React.FC<ParametersTabProps> = ({ storeId }) => {
           </Flex>
         </Flex>
 
-        <Divider style={{ margin: '16px 0' }} />
+        <Divider style={{ margin: '8px 0' }} />
 
         {/* Acordo Coletivo Section */}
         <SectionTitle>Acordo coletivo</SectionTitle>
@@ -256,6 +256,7 @@ const ParametersTabComponent: React.FC<ParametersTabProps> = ({ storeId }) => {
           icon={<UploadOutlined />} 
           style={{ width: "100%" }}
           type="default"
+          size="middle"
         >
           Enviar acordo coletivo
         </Button>
@@ -285,7 +286,7 @@ const ParametersTabComponent: React.FC<ParametersTabProps> = ({ storeId }) => {
           </Flex>
         </Checkbox.Group>
 
-        <Divider style={{ margin: '16px 0' }} />
+        <Divider style={{ margin: '8px 0' }} />
 
         {/* Aos domingos Section */}
         <SectionTitle>Aos domingos</SectionTitle>
@@ -350,7 +351,7 @@ const ParametersTabComponent: React.FC<ParametersTabProps> = ({ storeId }) => {
           <Text strong style={{ fontSize: 14, color: token.colorPrimary }}>{pdvCounts.total}</Text>
         </Flex>
 
-        <Divider style={{ margin: '16px 0' }} />
+        <Divider style={{ margin: '8px 0' }} />
 
         {/* Parâmetros de tolerância Section */}
         <SectionTitle>Parâmetros de tolerância</SectionTitle>

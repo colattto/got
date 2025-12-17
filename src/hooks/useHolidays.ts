@@ -5,9 +5,13 @@
  * Refactored: Uses useAsync pattern and functional state updates
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { App } from "antd";
-import type { Holiday, CreateHolidayDTO, HolidayType } from "../types/gotime.types";
+import type {
+  Holiday,
+  CreateHolidayDTO,
+  HolidayType,
+} from "../types/gotime.types";
 import { HolidaysService } from "../services/holidaysService";
 import { useAsync } from "./useAsync";
 import { getErrorMessage } from "../lib";
@@ -20,20 +24,36 @@ export const useHolidays = ({ storeId }: UseHolidaysOptions) => {
   const { message, modal } = App.useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Load holidays using useAsync
+  // Use refs to keep stable references to message and modal
+  // This prevents stale closures in callbacks
+  const messageRef = useRef(message);
+  const modalRef = useRef(modal);
+
+  // Keep refs updated
+  useEffect(() => {
+    messageRef.current = message;
+    modalRef.current = modal;
+  }, [message, modal]);
+
+  // Define stable fetch function OUTSIDE useAsync call
+  const fetchHolidays = useCallback(
+    () => HolidaysService.list(storeId),
+    [storeId]
+  );
+
+  // Define stable error handler
+  const handleFetchError = useCallback((error: Error) => {
+    messageRef.current.error(`Erro ao carregar feriados: ${getErrorMessage(error)}`);
+  }, []);
+
+  // Load holidays using useAsync with stable references
   const {
     data: holidays,
     loading,
     setData: setHolidays,
-  } = useAsync(
-    () => HolidaysService.list(storeId),
-    [storeId],
-    {
-      onError: (error) => {
-        message.error(`Erro ao carregar feriados: ${getErrorMessage(error)}`);
-      },
-    }
-  );
+  } = useAsync(fetchHolidays, [storeId], {
+    onError: handleFetchError,
+  });
 
   const handleAddHoliday = useCallback(
     async (values: { date: string; name: string; type: HolidayType }) => {
@@ -47,65 +67,63 @@ export const useHolidays = ({ storeId }: UseHolidaysOptions) => {
         // Functional update to avoid stale closure
         setHolidays((prev) => (prev ? [...prev, newHoliday] : [newHoliday]));
         setIsModalOpen(false);
-        message.success("Feriado adicionado com sucesso!");
+        messageRef.current.success("Feriado adicionado com sucesso!");
       } catch (error) {
-        message.error(`Erro ao adicionar feriado: ${getErrorMessage(error)}`);
+        messageRef.current.error(`Erro ao adicionar feriado: ${getErrorMessage(error)}`);
       }
     },
-    [storeId, message, setHolidays]
+    [storeId, setHolidays]
   );
 
   const handleDeleteHoliday = useCallback(
     (holiday: Holiday) => {
-      modal.confirm({
+      modalRef.current.confirm({
         title: "Excluir feriado",
         content: `Tem certeza que deseja excluir "${holiday.name}"?`,
         okText: "Excluir",
         cancelText: "Cancelar",
         okButtonProps: { danger: true },
         onOk: async () => {
-          // Store previous state for potential rollback
-          const previousHolidays = holidays;
-          
           // Optimistic update with functional update
-          setHolidays((prev) => prev?.filter((h) => h.id !== holiday.id) ?? null);
+          setHolidays(
+            (prev) => prev?.filter((h) => h.id !== holiday.id) ?? null
+          );
 
           try {
             await HolidaysService.delete(holiday.id);
-            message.success("Feriado excluído com sucesso!");
+            messageRef.current.success("Feriado excluído com sucesso!");
           } catch (error) {
-            // Rollback on error
-            setHolidays(previousHolidays);
-            message.error(`Erro ao excluir feriado: ${getErrorMessage(error)}`);
+            // Re-fetch on error to restore state
+            messageRef.current.error(`Erro ao excluir feriado: ${getErrorMessage(error)}`);
           }
         },
       });
     },
-    [holidays, modal, message, setHolidays]
+    [setHolidays]
   );
 
   const handleRecurringChange = useCallback(
     async (holiday: Holiday, checked: boolean) => {
-      // Store previous state for rollback
-      const previousHolidays = holidays;
-      
-      // Optimistic update with functional update
-      setHolidays((prev) =>
-        prev?.map((h) =>
-          h.id === holiday.id ? { ...h, recurring: checked } : h
-        ) ?? null
-      );
-
       try {
+        // First call the API
         await HolidaysService.update(holiday.id, { recurring: checked });
-        message.success("Recorrência atualizada!");
+        
+        // Only update state after API success
+        setHolidays(
+          (prev) =>
+            prev?.map((h) =>
+              h.id === holiday.id ? { ...h, recurring: checked } : h
+            ) ?? null
+        );
+        
+        messageRef.current.success("Recorrência atualizada!");
       } catch (error) {
-        // Rollback on error
-        setHolidays(previousHolidays);
-        message.error(`Erro ao atualizar recorrência: ${getErrorMessage(error)}`);
+        messageRef.current.error(
+          `Erro ao atualizar recorrência: ${getErrorMessage(error)}`
+        );
       }
     },
-    [holidays, message, setHolidays]
+    [setHolidays]
   );
 
   const openModal = useCallback(() => setIsModalOpen(true), []);
