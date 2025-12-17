@@ -154,7 +154,7 @@ const CollaboratorsTabComponent: React.FC<CollaboratorsTabProps> = ({
         align="center"
         justify="space-between"
         style={{
-          padding: `${token.paddingMD}px 0`,
+          padding: "16px 0 0 0",
           background: token.colorBgContainer,
           flexShrink: 0,
         }}

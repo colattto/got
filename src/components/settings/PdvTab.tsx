@@ -174,7 +174,7 @@ const PdvTabComponent: React.FC<PdvTabProps> = ({ pdvs, searchTerm, onUpdate, on
           align="center"
           justify="space-between"
           style={{
-            padding: `${token.paddingMD}px 0`,
+            padding: "16px 0 0 0",
             background: token.colorBgContainer,
             flexShrink: 0,
           }}
