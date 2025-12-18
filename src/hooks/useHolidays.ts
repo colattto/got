@@ -76,28 +76,26 @@ export const useHolidays = ({ storeId }: UseHolidaysOptions) => {
   );
 
   const handleDeleteHoliday = useCallback(
-    (holiday: Holiday) => {
-      modalRef.current.confirm({
-        title: "Excluir feriado",
-        content: `Tem certeza que deseja excluir "${holiday.name}"?`,
-        okText: "Excluir",
-        cancelText: "Cancelar",
-        okButtonProps: { danger: true },
-        onOk: async () => {
-          // Optimistic update with functional update
-          setHolidays(
-            (prev) => prev?.filter((h) => h.id !== holiday.id) ?? null
-          );
+    async (holiday: Holiday) => {
+      // Store previous state for potential rollback
+      let previousHolidays: Holiday[] | null = null;
 
-          try {
-            await HolidaysService.delete(holiday.id);
-            messageRef.current.success("Feriado excluído com sucesso!");
-          } catch (error) {
-            // Re-fetch on error to restore state
-            messageRef.current.error(`Erro ao excluir feriado: ${getErrorMessage(error)}`);
-          }
-        },
+      // Optimistic update with functional update
+      setHolidays((prev) => {
+        previousHolidays = prev;
+        return prev?.filter((h) => h.id !== holiday.id) ?? null;
       });
+
+      try {
+        await HolidaysService.delete(holiday.id);
+        messageRef.current.success("Feriado excluído com sucesso!");
+      } catch (error) {
+        // Rollback on error
+        if (previousHolidays) {
+          setHolidays(previousHolidays);
+        }
+        messageRef.current.error(`Erro ao excluir feriado: ${getErrorMessage(error)}`);
+      }
     },
     [setHolidays]
   );

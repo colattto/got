@@ -5,7 +5,7 @@
  * Refactored: Fixed stale closures with functional updates
  */
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { App } from "antd";
 import type { TabType, Store, Collaborator, Pdv } from "../types/gotime.types";
 import { StoreService } from "../services/storeService";
@@ -14,6 +14,13 @@ import { getErrorMessage } from "../lib";
 
 export const useGotimeSettings = () => {
   const { message } = App.useApp();
+
+  // Use ref to keep stable reference to message
+  // This prevents stale closures in callbacks
+  const messageRef = useRef(message);
+
+  // Keep ref updated on every render
+  messageRef.current = message;
 
   // UI State
   const [selectedStoreId, setSelectedStoreId] = useState<string>("");
@@ -34,7 +41,7 @@ export const useGotimeSettings = () => {
     {
       onSuccess: () => {},
       onError: (error) => {
-        message.error(`Erro ao carregar lojas: ${getErrorMessage(error)}`);
+        messageRef.current.error(`Erro ao carregar lojas: ${getErrorMessage(error)}`);
       },
     }
   );
@@ -60,14 +67,14 @@ export const useGotimeSettings = () => {
         setCollaborators(collabs);
         setPdvs(pdvList);
       } catch (error) {
-        message.error(`Erro ao carregar dados da loja: ${getErrorMessage(error)}`);
+        messageRef.current.error(`Erro ao carregar dados da loja: ${getErrorMessage(error)}`);
       } finally {
         setDataLoading(false);
       }
     };
 
     loadStoreData();
-  }, [selectedStoreId, message]);
+  }, [selectedStoreId]);
 
   // Derived state
   const filteredStores = useMemo(() => {
@@ -112,10 +119,10 @@ export const useGotimeSettings = () => {
       } catch (error) {
         // Rollback on error
         setCollaborators(previousCollaborators);
-        message.error(`Erro ao atualizar colaborador: ${getErrorMessage(error)}`);
+        messageRef.current.error(`Erro ao atualizar colaborador: ${getErrorMessage(error)}`);
       }
     },
-    [message]
+    []
   );
 
   // Fixed: Using functional update to avoid stale closure
@@ -134,10 +141,10 @@ export const useGotimeSettings = () => {
       } catch (error) {
         // Rollback on error
         setPdvs(previousPdvs);
-        message.error(`Erro ao atualizar PDV: ${getErrorMessage(error)}`);
+        messageRef.current.error(`Erro ao atualizar PDV: ${getErrorMessage(error)}`);
       }
     },
-    [selectedStoreId, message]
+    [selectedStoreId]
   );
 
   const handleAddPdv = useCallback(
@@ -146,12 +153,42 @@ export const useGotimeSettings = () => {
         const addedPdv = await StoreService.createPdv(selectedStoreId, newPdv);
         // Functional update
         setPdvs((prev) => [...prev, addedPdv]);
-        message.success("PDV adicionado com sucesso!");
+        messageRef.current.success("PDV adicionado com sucesso!");
       } catch (error) {
-        message.error(`Erro ao adicionar PDV: ${getErrorMessage(error)}`);
+        messageRef.current.error(`Erro ao adicionar PDV: ${getErrorMessage(error)}`);
       }
     },
-    [selectedStoreId, message]
+    [selectedStoreId]
+  );
+
+  // Keep selectedStoreId ref updated for stable closures
+  const selectedStoreIdRef = useRef(selectedStoreId);
+  useEffect(() => {
+    selectedStoreIdRef.current = selectedStoreId;
+  }, [selectedStoreId]);
+
+  const handleDeletePdv = useCallback(
+    async (id: string) => {
+      const storeId = selectedStoreIdRef.current;
+
+      // Optimistic update - just remove from UI
+      setPdvs((prev) => prev.filter((p) => p.id !== id));
+
+      try {
+        await StoreService.deletePdv(storeId, id);
+        messageRef.current?.success("PDV excluído com sucesso!");
+      } catch (error) {
+        // If NotFoundError, the item was already deleted, so we consider it a success
+        const isNotFound = error instanceof Error && error.message.includes('not found');
+        if (isNotFound) {
+          messageRef.current?.success("PDV excluído com sucesso!");
+        } else {
+          // For other errors, we should refetch data to restore consistency
+          messageRef.current?.error(`Erro ao excluir PDV: ${getErrorMessage(error)}`);
+        }
+      }
+    },
+    []
   );
 
   return {
@@ -182,5 +219,6 @@ export const useGotimeSettings = () => {
     handleUpdateCollaborator,
     handleUpdatePdv,
     handleAddPdv,
+    handleDeletePdv,
   };
 };

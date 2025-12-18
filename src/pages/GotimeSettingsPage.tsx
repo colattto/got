@@ -51,6 +51,7 @@ export const GotimeSettingsPage: React.FC = () => {
     handleUpdateCollaborator,
     handleUpdatePdv,
     handleAddPdv,
+    handleDeletePdv,
   } = useGotimeSettings();
 
   const renderTabContent = () => {
@@ -70,6 +71,7 @@ export const GotimeSettingsPage: React.FC = () => {
             searchTerm={searchTerm}
             onUpdate={handleUpdatePdv}
             onAdd={handleAddPdv}
+            onDelete={handleDeletePdv}
           />
         );
       case "hours":

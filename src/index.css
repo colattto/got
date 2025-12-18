@@ -66,3 +66,13 @@ body {
   color: #ff4d4f !important; /* Ant Design Error Color */
   background-color: rgba(255, 77, 79, 0.1);
 }
+
+/* Table Row Hover Transition */
+.ant-table-tbody > tr {
+  transition: background-color 0.2s ease !important;
+}
+
+.ant-table-tbody > tr > td {
+  transition: background-color 0.2s ease, opacity 0.2s ease !important;
+}
+

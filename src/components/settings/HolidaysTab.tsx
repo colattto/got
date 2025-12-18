@@ -20,6 +20,7 @@ import {
   Input,
   DatePicker,
   Select,
+  Popconfirm,
 } from "antd";
 import {
   CalendarOutlined,
@@ -132,14 +133,23 @@ const HolidaysTabComponent: React.FC<HolidaysTabProps> = ({ storeId }) => {
         title: "Ações",
         dataIndex: "id",
         width: 100,
+        onCell: () => ({ style: { opacity: 1 } }),
         render: (_, record) => (
-          <Button
-            type="text"
-            className="btn-delete"
-            size="small"
-            icon={<DeleteOutlined />}
-            onClick={() => handleDeleteHoliday(record)}
-          />
+          <Popconfirm
+            title="Excluir feriado"
+            description="Tem certeza que deseja excluir este feriado?"
+            onConfirm={() => handleDeleteHoliday(record)}
+            okText="Sim"
+            cancelText="Não"
+            okButtonProps={{ danger: true }}
+          >
+            <Button
+              type="text"
+              className="btn-delete"
+              size="small"
+              icon={<DeleteOutlined />}
+            />
+          </Popconfirm>
         ),
       },
     ],

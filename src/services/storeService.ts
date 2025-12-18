@@ -80,4 +80,16 @@ export const StoreService = {
     }
     return updated;
   },
+
+  /**
+   * Delete a PDV
+   */
+  deletePdv: async (storeId: string, id: string): Promise<void> => {
+    await delay();
+
+    const deleted = pdvStore.delete(storeId, id);
+    if (!deleted) {
+      throw new NotFoundError("PDV", id);
+    }
+  },
 };

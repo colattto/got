@@ -6,8 +6,18 @@
  */
 
 import React, { useMemo } from "react";
-import { Table, Button, Tag, Switch, Typography, theme, Flex, Space } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import {
+  Table,
+  Button,
+  Tag,
+  Switch,
+  Typography,
+  theme,
+  Flex,
+  Space,
+  Popconfirm,
+} from "antd";
+import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import type { Pdv, PdvType } from "../../types/gotime.types";
 
@@ -18,11 +28,18 @@ interface PdvTabProps {
   searchTerm: string;
   onUpdate: (id: string, updates: Partial<Pdv>) => void;
   onAdd: (newPdv: Omit<Pdv, "id">) => void;
+  onDelete: (id: string) => void;
 }
 
 import { PdvFormDrawer } from "./PdvFormDrawer";
 
-const PdvTabComponent: React.FC<PdvTabProps> = ({ pdvs, searchTerm, onUpdate, onAdd }) => {
+const PdvTabComponent: React.FC<PdvTabProps> = ({
+  pdvs,
+  searchTerm,
+  onUpdate,
+  onAdd,
+  onDelete,
+}) => {
   const { token } = theme.useToken();
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const [editingPdv, setEditingPdv] = React.useState<Pdv | null>(null);
@@ -62,6 +79,12 @@ const PdvTabComponent: React.FC<PdvTabProps> = ({ pdvs, searchTerm, onUpdate, on
         dataIndex: "position",
         sorter: (a, b) => a.position - b.position,
         width: 80,
+        onCell: (record) => ({
+          style: {
+            opacity: record.scaleActive ? 1 : 0.5,
+            transition: "opacity 0.2s ease",
+          },
+        }),
       },
       {
         title: "Cód. Interno",
@@ -69,15 +92,28 @@ const PdvTabComponent: React.FC<PdvTabProps> = ({ pdvs, searchTerm, onUpdate, on
         sorter: (a, b) => a.internalCode - b.internalCode,
         width: 104,
         onHeaderCell: () => ({ style: { whiteSpace: "nowrap" } }),
+        onCell: (record) => ({
+          style: {
+            opacity: record.scaleActive ? 1 : 0.5,
+            transition: "opacity 0.2s ease",
+          },
+        }),
       },
       {
         title: "Tipo do PDV",
         dataIndex: "type",
         width: 112,
         onHeaderCell: () => ({ style: { whiteSpace: "nowrap" } }),
+        onCell: (record) => ({
+          style: {
+            opacity: record.scaleActive ? 1 : 0.5,
+            transition: "opacity 0.2s ease",
+          },
+        }),
         render: (value: PdvType) => {
           if (value === "Normal") return <Tag>{value}</Tag>;
-          if (value === "Rápido") return <Tag color={token.colorWarning}>{value}</Tag>;
+          if (value === "Rápido")
+            return <Tag color={token.colorWarning}>{value}</Tag>;
           return <Tag color={token.colorPrimary}>{value}</Tag>;
         },
       },
@@ -86,11 +122,23 @@ const PdvTabComponent: React.FC<PdvTabProps> = ({ pdvs, searchTerm, onUpdate, on
         dataIndex: "openOrder",
         width: 120,
         onHeaderCell: () => ({ style: { whiteSpace: "nowrap" } }),
+        onCell: (record) => ({
+          style: {
+            opacity: record.scaleActive ? 1 : 0.5,
+            transition: "opacity 0.2s ease",
+          },
+        }),
       },
       {
         title: "Orientação",
         dataIndex: "orientation",
         width: "30%",
+        onCell: (record) => ({
+          style: {
+            opacity: record.scaleActive ? 1 : 0.5,
+            transition: "opacity 0.2s ease",
+          },
+        }),
       },
       {
         title: "Escala",
@@ -102,9 +150,13 @@ const PdvTabComponent: React.FC<PdvTabProps> = ({ pdvs, searchTerm, onUpdate, on
           <Switch
             size="small"
             checked={value}
-            onChange={(checked) => onUpdate(record.id, { scaleActive: checked })}
+            onChange={(checked) =>
+              onUpdate(record.id, { scaleActive: checked })
+            }
             style={{
-              backgroundColor: value ? token.colorPrimary : token.colorTextQuaternary,
+              backgroundColor: value
+                ? token.colorPrimary
+                : token.colorTextQuaternary,
             }}
           />
         ),
@@ -112,15 +164,33 @@ const PdvTabComponent: React.FC<PdvTabProps> = ({ pdvs, searchTerm, onUpdate, on
       {
         title: "Ações",
         dataIndex: "id",
-        width: 88,
+        width: 120,
+        onCell: () => ({ style: { opacity: 1 } }),
         render: (_, record) => (
-          <Button type="link" size="small" onClick={() => handleEdit(record)}>
-            Gerenciar
-          </Button>
+          <Space size="small">
+            <Button type="link" size="small" onClick={() => handleEdit(record)}>
+              Gerenciar
+            </Button>
+            <Popconfirm
+              title="Excluir PDV"
+              description="Tem certeza que deseja excluir este PDV?"
+              onConfirm={() => onDelete(record.id)}
+              okText="Sim"
+              cancelText="Não"
+              okButtonProps={{ danger: true }}
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={<DeleteOutlined />}
+                className="btn-delete"
+              />
+            </Popconfirm>
+          </Space>
         ),
       },
     ],
-    [token, onUpdate]
+    [token, onUpdate, onDelete]
   );
 
   const pdvTypeCounters = filteredPdvs.reduce(
@@ -168,11 +238,7 @@ const PdvTabComponent: React.FC<PdvTabProps> = ({ pdvs, searchTerm, onUpdate, on
             pagination={false}
             size="middle"
             scroll={{ y: tableScrollHeight }}
-            onRow={(record) => ({
-              style: !record.scaleActive
-                ? { opacity: 0.5, transition: 'opacity 0.2s ease' }
-                : { opacity: 1, transition: 'opacity 0.2s ease' },
-            })}
+
           />
         </Flex>
 
@@ -192,7 +258,11 @@ const PdvTabComponent: React.FC<PdvTabProps> = ({ pdvs, searchTerm, onUpdate, on
             <Text strong>Preferencial:</Text> {pdvTypeCounters.Preferencial}
           </Text>
 
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAddClick}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleAddClick}
+          >
             Adicionar PDV
           </Button>
         </Flex>

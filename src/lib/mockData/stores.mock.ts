@@ -279,6 +279,13 @@ class PdvStore {
     this.data.get(storeId)!.set(id, updated);
     return updated;
   }
+
+  delete(storeId: string, id: string): boolean {
+    const storeData = this.data.get(storeId);
+    if (!storeData || !storeData.has(id)) return false;
+    storeData.delete(id);
+    return true;
+  }
 }
 
 // Singleton store instances
